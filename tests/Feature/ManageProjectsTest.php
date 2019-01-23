@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Tests\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Facades\Tests\Setup\ProjectFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class ManageProjectsTest extends TestCase
@@ -15,21 +16,51 @@ class ManageProjectsTest extends TestCase
     {
         $this->withoutExceptionHandling();
 
-        $this->actingAs(factory('App\User')->create());
+        $this->signIn();
         $attributes = [
             'title' => $this->faker->sentence,
-            'description' => $this->faker->paragraph,
+            'description' => $this->faker->sentence,
+            'notes' => $this->faker->paragraph,
         ];
-        $this->post('/projects', $attributes)->assertRedirect('/projects');
+        $response = $this->post('/projects', $attributes);
 
-        $this->assertDatabaseHas('projects', $attributes);
+        $project = \App\Project::where($attributes)->first();
 
-        $this->get('/projects')->assertSee($attributes['title']);
+        $response->assertRedirect($project->path());
+
+        $this->get($project->path())
+            ->assertSee($attributes['title'])
+            ->assertSee($attributes['description'])
+            ->assertSee($attributes['notes']);
+    }
+    /** @test */
+    public function a_user_can_update_their_project()
+    {
+       
+        $project = ProjectFactory::create();
+        
+        $this->actingAs($project->owner)->patch($project->path(),[
+            'notes' => 'New note'
+        ])->assertRedirect($project->path());
+
+        $this->assertDatabaseHas('projects', ['notes' => 'New note']);
+    }
+    /** @test */
+    public function only_the_owner_of_the_project_can_update_it()
+    {
+        // $this->withoutExceptionHandling();
+        
+        $this->signIn();
+        $project = ProjectFactory::create();
+
+        $this->patch($project->path(), [])->assertStatus(403);
+
+        // $this->assertDatabaseMissing('projects', ['notes' => 'New note']);
     }
 
     /** @test */
     public function a_project_requires_a_title(){
-        $this->actingAs(factory('App\User')->create());
+        $this->signIn();
 
         $attributes = factory('App\Project')->raw(['title' => '']);
 
@@ -38,7 +69,7 @@ class ManageProjectsTest extends TestCase
     }
     /** @test */
     public function a_project_requires_a_description(){
-        $this->actingAs(factory('App\User')->create());
+        $this->signIn();
         $attributes = factory('App\Project')->raw(['description' => '']);
 
         $this->post('/projects', [])->assertSessionHasErrors('description');
@@ -73,19 +104,22 @@ class ManageProjectsTest extends TestCase
 
         $this->withoutExceptionHandling();
         
-        $this->actingAs(factory('App\User')->create());
-        $project = factory('App\Project')->create(['owner_id' => auth()->id()]);
+        $project = ProjectFactory::create();
 
-        $this->get($project->path())->assertSee($project->title)->assertSee($project->description);
+        $this->actingAs($project->owner)
+            ->get($project->path())
+            ->assertSee($project->title)
+            ->assertSee(str_limit($project->description, 100));
     }
     /** @test */
     public function an_auth_user_cant_view_projects_of_others(){
 
         // $this->withoutExceptionHandling();
 
-        $this->actingAs(factory('App\User')->create());
+        $this->signIn();
         $project = factory('App\Project')->create();
 
         $this->get($project->path())->assertStatus(403);
     }
+
 }

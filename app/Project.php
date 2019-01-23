@@ -13,4 +13,13 @@ class Project extends Model
     public function owner(){
         return $this->belongsTo('App\User', 'owner_id');
     }
+
+
+    public function addTask($body){
+        return $this->tasks()->create(compact('body'));
+    }
+
+    public function tasks(){
+        return $this->hasMany('App\Task');
+    }
 }
