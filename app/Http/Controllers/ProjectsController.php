@@ -23,8 +23,13 @@ class ProjectsController extends Controller
 
     public function show(Project $project){
         $this->authorize('update', $project);
-        
+
         return view('projects.show', compact('project'));
+    }
+    public function edit(Project $project){
+        $this->authorize('update', $project);
+
+        return view('projects.edit', compact('project'));
     }
 
     public function store(){
@@ -48,10 +53,12 @@ class ProjectsController extends Controller
     public function update(Project $project){
 
         $this->authorize('update', $project);
-        
-        $project->update([
-            'notes'=>request('notes')
+        $attributes = request()->validate([
+            'title'=> 'sometimes|required', 
+            'description' => 'sometimes|required',
+            'notes' => 'nullable',
         ]);
+        $project->update($attributes);
 
         // Project::create($attributes);
 
