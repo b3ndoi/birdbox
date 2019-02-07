@@ -6,6 +6,7 @@ use Tests\TestCase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Facades\Tests\Setup\ProjectFactory;
+use App\Task;
 class RecordActivityFeedTest extends TestCase
 {
     use RefreshDatabase;
@@ -32,10 +33,15 @@ class RecordActivityFeedTest extends TestCase
      */
      public function creating_a_new_task_for_project()
      {
+         
          $project = ProjectFactory::create();
          $project->addTask('Test Task');
          $this->assertCount(2, $project->activity);
-         $this->assertEquals('created_task', $project->activity->last()->description);
+         tap($project->activity->last(), function($activity){
+             $this->assertEquals('created_task', $activity->description);
+             $this->assertInstanceOf(Task::class, $activity->subject);
+             $this->assertEquals('Test Task', $activity->subject->body);
+         });
      }
     /** @test */
      public function completing_a_task_for_project()
@@ -46,7 +52,11 @@ class RecordActivityFeedTest extends TestCase
              'completed' => true
          ]);
          $this->assertCount(3, $project->activity);
-         $this->assertEquals('completed_task', $project->activity->last()->description);
+         
+         tap($project->activity->last(), function($activity){
+            $this->assertEquals('completed_task', $activity->description);
+            $this->assertInstanceOf(Task::class, $activity->subject);
+        });
      }
     /** @test */
      public function incompleting_a_task_for_project()
@@ -65,7 +75,10 @@ class RecordActivityFeedTest extends TestCase
         $project->refresh();
         $this->assertCount(4, $project->activity);
 
-         $this->assertEquals('incompleted_task', $project->activity->first()->description);
+         tap($project->activity->last(), function($activity){
+            $this->assertEquals('incompleted_task', $activity->description);
+            $this->assertInstanceOf(Task::class, $activity->subject);
+        });
      }
 
     /** @test */
