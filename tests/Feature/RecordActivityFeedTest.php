@@ -22,11 +22,19 @@ class RecordActivityFeedTest extends TestCase
     /** @test */
     public function updating_a_project(){
         $project = ProjectFactory::create();
-        $project->update(['title' => 'changed']);
-
+        $originalTitle = $project->title;
+        $project->update(['title' => 'Changed']);
         $this->assertCount(2, $project->activity);
+        tap( $project->activity->last(), function($activity) use ($originalTitle){
 
-        $this->assertEquals('updated', $project->activity->last()->description);
+            $this->assertEquals('updated', $activity->description);
+            $expected = [
+                'before' => ['title' => $originalTitle],
+                'after' => ['title' => 'Changed'],
+            ];
+            
+            $this->assertEquals($expected, $activity->changes);
+        });
     }
 
     /** @test

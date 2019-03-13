@@ -6,6 +6,8 @@ use App\Model;
 
 class Project extends Model
 {
+    use RecordActivity;
+    
     public function path(){
         return '/projects/'.$this->id;
     }
@@ -27,9 +29,5 @@ class Project extends Model
 
     public function activity(){
         return $this->hasMany('App\Activity', 'project_id')->latest();
-    }
-
-    public function recordActivity($description){
-        $this->activity()->create(['description' => $description]);
     }
 }
